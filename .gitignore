@@ -124,3 +124,7 @@ dmypy.json
 .pyre/
 .idea/*
 .DS_Store
+demo
+ops
+released
+videos
