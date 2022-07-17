@@ -3,6 +3,7 @@ from argparse import ArgumentParser
 import os
 import mmcv
 import shutil
+import json
 
 import mmcv_custom   # noqa: F401,F403
 import mmseg_custom   # noqa: F401,F403
@@ -101,17 +102,32 @@ def main():
     if hasattr(model, 'module'):
         model = model.module
 
+    game_id = osp.basename(args.video)[:-len('.mp4')]
+    
+    frames_dir = osp.join(args.out, game_id, 'frames')
     try:
-        semseg_dir = osp.join(args.out, osp.basename(args.video)[:-len('.mp4')], 'semseg')
-        shutil.rmtree(semseg_dir)
-        os.mkdir(semseg_dir)
+        shutil.rmtree(frames_dir)
     except: pass
     try:
-        semseg_fg_dir = osp.join(args.out, osp.basename(args.video)[:-len('.mp4')], 'semseg_fg')
-        shutil.rmtree(semseg_fg_dir)
-        os.mkdir(semseg_fg_dir)
+        os.mkdir(frames_dir)
     except: pass
     
+    semseg_dir = osp.join(args.out, game_id, 'semseg')
+    try:
+        shutil.rmtree(semseg_dir)
+    except: pass
+    try:
+        os.mkdir(semseg_dir)
+    except: pass
+
+    semseg_fg_dir = osp.join(args.out, game_id, 'semseg_fg')
+    try:
+        shutil.rmtree(semseg_fg_dir)
+    except: pass
+    try:
+        os.mkdir(semseg_fg_dir)
+    except: pass
+
     frame_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
     for i in tqdm.tqdm(range(frame_count)):
         success, frame = video.read()
@@ -122,20 +138,27 @@ def main():
         foreground_mask = result[0] == 0
         for category in [93, 131]:
             foreground_mask = foreground_mask | (result[0] == category)
-        foreground_mask = foreground_mask.astype(int) * 50
-        cv2.imwrite(osp.join(args.out, osp.basename(args.video)[:-len('.mp4')], f'semseg/{i}.png'), foreground_mask)
-        # writer1.write(foreground_mask)
 
-        frame_foreground = frame.copy()
+        cv2.imwrite(osp.join(args.out, game_id, f'frames/{i}.jpg', frame))
+
+        frame_foreground = cv2.cvtColor(frame.copy(), cv2.COLOR_BGR2BGRA)
         frame_foreground[~foreground_mask] = 0
-        cv2.imwrite(osp.join(args.out, osp.basename(args.video)[:-len('.mp4')], f'semseg_fg/{i}.png'), frame_foreground)
+        cv2.imwrite(osp.join(args.out, game_id, f'semseg_fg/{i}.png'), frame_foreground)
+        
+        foreground_mask = foreground_mask.astype(int) * 255
+        # foreground_mask = cv2.cvtColor(foreground_mask, cv2.COLOR_BGR2BGRA)
+        cv2.imwrite(osp.join(args.out, game_id, f'semseg/{i}.png'), foreground_mask)
+        
+        # writer1.write(foreground_mask)
         # frame_background = frame.copy()
         # frame_background[foreground_mask] = 0
         # writer0.write(frame_background)
 
         # if i % 20 == 0:
         #     print(f'Finished processing {i} frames')
-
+    with open(osp.join(args.out, game_id, f'frames/max_frame.json'), 'w') as f:
+        json.dump({'max_frame': frame_count}, f)        
+    
     # writer0.release()
     # writer1.release()
 
