@@ -120,13 +120,13 @@ def main():
         os.mkdir(semseg_dir)
     except: pass
 
-    semseg_fg_dir = osp.join(args.out, game_id, 'semseg_fg')
-    try:
-        shutil.rmtree(semseg_fg_dir)
-    except: pass
-    try:
-        os.mkdir(semseg_fg_dir)
-    except: pass
+    # semseg_fg_dir = osp.join(args.out, game_id, 'semseg_fg')
+    # try:
+    #     shutil.rmtree(semseg_fg_dir)
+    # except: pass
+    # try:
+    #     os.mkdir(semseg_fg_dir)
+    # except: pass
 
     frame_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
     for i in tqdm.tqdm(range(frame_count)):
@@ -138,16 +138,15 @@ def main():
         foreground_mask = result[0] == 0
         for category in [93, 131]:
             foreground_mask = foreground_mask | (result[0] == category)
+        cv2.imwrite(osp.join(args.out, game_id, f'frames/{i}.jpg'), frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
 
-        cv2.imwrite(osp.join(args.out, game_id, f'frames/{i}.jpg', frame))
-
-        frame_foreground = cv2.cvtColor(frame.copy(), cv2.COLOR_BGR2BGRA)
-        frame_foreground[~foreground_mask] = 0
-        cv2.imwrite(osp.join(args.out, game_id, f'semseg_fg/{i}.png'), frame_foreground)
+        # frame_foreground = cv2.cvtColor(frame.copy(), cv2.COLOR_BGR2BGRA)
+        # frame_foreground[~foreground_mask] = 0
+        # cv2.imwrite(osp.join(args.out, game_id, f'semseg_fg/{i}.png'), frame_foreground)
         
         foreground_mask = foreground_mask.astype(int) * 255
-        # foreground_mask = cv2.cvtColor(foreground_mask, cv2.COLOR_BGR2BGRA)
-        cv2.imwrite(osp.join(args.out, game_id, f'semseg/{i}.png'), foreground_mask)
+        foreground_mask = cv2.merge((foreground_mask,foreground_mask,foreground_mask, foreground_mask))
+        cv2.imwrite(osp.join(args.out, game_id, f'semseg/{i}.png'), foreground_mask, [cv2.IMWRITE_PNG_COMPRESSION, 9])
         
         # writer1.write(foreground_mask)
         # frame_background = frame.copy()
